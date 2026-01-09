@@ -1,0 +1,20 @@
+{
+  "name": "nft-store-blockchain",
+  "version": "1.0.0",
+  "description": "Smart contracts for NFT Store with Recency-Weighted Royalty Sharing",
+  "scripts": {
+    "node": "hardhat node",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:reset": "hardhat run scripts/deploy.js --network localhost --reset",
+    "test": "hardhat test",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.4"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1"
+  }
+}

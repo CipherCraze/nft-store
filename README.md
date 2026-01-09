@@ -1,69 +1,131 @@
-# 🎨 VAULT - NFT Royalty Marketplace
+# � NFT Store - Recency-Weighted Royalty Platform
 
-A transparent NFT marketplace with **on-chain royalty distribution** built with React, Vite, Tailwind CSS, and ethers.js.
+A decentralized NFT marketplace with innovative recency-weighted royalty distribution. Built for **HACKEFX Hackathon**.
 
-## 🚀 Features
+## 🎯 Project Structure
 
-- **🔐 MetaMask Integration** - Connect wallet and interact with Ethereum
-- **🎨 Mint NFTs** - Create unique NFTs with custom pricing
-- **🛒 Marketplace** - Browse and purchase NFTs
-- **📊 Ownership History** - Full transparency of all previous owners
-- **💰 Royalty Distribution** - Automatic royalty payouts to all previous owners
-- **⚡ Real-time Updates** - Live price and ownership tracking
-- **🎭 Cyber-Luxury Design** - Distinctive neon aesthetic with animated gradients
+```
+NFT-STORE/
+│
+├── frontend/              👈 React + Vite + Tailwind UI
+│   ├── src/
+│   │   ├── components/   # Reusable components
+│   │   ├── pages/        # Main pages
+│   │   ├── context/      # Web3 context
+│   │   ├── contracts/    # Contract ABI & address
+│   │   └── utils/        # Helper functions
+│   ├── package.json
+│   └── vite.config.js
+│
+├── blockchain/            👈 Hardhat Smart Contracts
+│   ├── contracts/
+│   │   └── RoyaltyNFT.sol     # Main contract
+│   ├── scripts/
+│   │   └── deploy.js          # Deployment script
+│   ├── test/
+│   │   └── RoyaltyNFT.test.js # Contract tests
+│   ├── hardhat.config.js
+│   └── package.json
+│
+└── README.md              👈 You are here
+```
 
-## 📋 Prerequisites
+## 🚀 Quick Start (Full Stack)
 
-Before you begin, ensure you have:
+### Prerequisites
 
-- **Node.js** (v14 or higher)
-- **npm** or **yarn**
-- **MetaMask** browser extension ([Install here](https://metamask.io/download/))
-- **Contract Address & ABI** from Member-1 (blockchain team)
-- **Hardhat node running** (Member-1's responsibility)
+- Node.js v18+
+- MetaMask browser extension
+- Git
 
-## 🔧 Installation & Setup
-
-### 1. Install Dependencies
+### Step 1: Clone & Setup
 
 ```bash
+# Clone repository
+git clone <repo-url>
+cd NFT-Store
+
+# Install blockchain dependencies
+cd blockchain
+npm install
+
+# Install frontend dependencies
+cd ../frontend
 npm install
 ```
 
-### 2. Configure Smart Contract (CRITICAL!)
+### Step 2: Start Blockchain
 
-⚠️ **BEFORE RUNNING:** Update the contract configuration:
+```bash
+# Terminal 1 - Start Hardhat node
+cd blockchain
+npm run node
 
-📁 **`src/contracts/contractAddress.js`**
-```javascript
-export const CONTRACT_ADDRESS = "YOUR_DEPLOYED_CONTRACT_ADDRESS_HERE";
+# Keep this running! You'll see 20 accounts with 10,000 ETH each
 ```
 
-📁 **`src/contracts/abi.json`**
-- Replace with the actual ABI from Member-1's deployed contract
+### Step 3: Deploy Contract
 
-📚 **See:** `HARDHAT_SETUP.md` for detailed Hardhat configuration
+```bash
+# Terminal 2 - Deploy contract
+cd blockchain
+npm run deploy
 
-### 3. Configure MetaMask for Hardhat
+# Copy the contract address from output
+# Example: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+```
 
-Add Hardhat network to MetaMask:
+### Step 4: Update Frontend
 
-| Setting | Value |
-|---------|-------|
-| Network Name | `Hardhat Local` |
-| RPC URL | `http://127.0.0.1:8545` |
-| Chain ID | `31337` |
-| Currency Symbol | `ETH` |
+**Update Contract Address:**
 
-📚 **Full guide:** `HARDHAT_QUICKREF.md`
+```javascript
+// frontend/src/contracts/contractAddress.js
+export const CONTRACT_ADDRESS = "0x5FbDB2..."; // Paste your address
+```
 
-### 4. Import Test Accounts
+**Update ABI:**
 
-Import these Hardhat test accounts into MetaMask:
+```bash
+# Copy the entire "abi" array from:
+blockchain/artifacts/contracts/RoyaltyNFT.sol/RoyaltyNFT.json
 
-- **Owner-1:** `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`
-- **Owner-2:** `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d`
-- **Owner-3:** `0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a`
+# Paste into:
+frontend/src/contracts/abi.json
+```
+
+### Step 5: Configure MetaMask
+
+1. **Add Hardhat Network:**
+   - Network Name: `Hardhat Local`
+   - RPC URL: `http://127.0.0.1:8545`
+   - Chain ID: `31337`
+   - Currency: `ETH`
+
+2. **Import Test Accounts:**
+   ```
+   Account 1: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+   Account 2: 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+   Account 3: 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+   ```
+
+### Step 6: Start Frontend
+
+```bash
+# Terminal 3 - Start React app
+cd frontend
+npm run dev
+
+# Open http://localhost:5173
+```
+
+### Step 7: Test Integration
+
+1. **Connect Wallet** - Click "Connect Wallet" in navbar
+2. **Mint NFT** - Go to Mint page, create NFT #1 with 1 ETH
+3. **View Marketplace** - See your NFT listed
+4. **Buy NFT** - Switch accounts, buy the NFT
+5. **Check History** - View ownership & royalty distribution
 
 ⚠️ These are Hardhat's default test accounts with 10,000 ETH each.
 
