@@ -42,6 +42,12 @@ export default function Navbar() {
             >
               Marketplace
             </Link>
+            <Link
+              to="/history"
+              className="text-gray-400 hover:text-yellow-400 transition-colors text-sm uppercase tracking-wider"
+            >
+              History
+            </Link>
           </div>
 
           {/* Wallet Status */}

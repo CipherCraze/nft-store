@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useContext } from "react";
 import { Web3Context } from "../context/Web3Context";
+import { Shield, Gem, Zap, Link2 } from "lucide-react";
 
 export default function Home() {
   const { account } = useContext(Web3Context);
@@ -90,7 +91,7 @@ export default function Home() {
           {/* Feature 1 */}
           <div className="p-8 bg-gradient-to-br from-[#0a0a0f]/90 to-[#1a1a2e]/90 backdrop-blur-xl border border-[#00fff9]/20 rounded-xl">
             <div className="w-12 h-12 bg-[#00fff9]/20 rounded-lg flex items-center justify-center mb-4">
-              <span className="text-2xl">🔗</span>
+              <Link2 size={24} className="text-[#00fff9]" />
             </div>
             <h3
               className="text-xl font-bold text-white mb-3"
@@ -107,7 +108,7 @@ export default function Home() {
           {/* Feature 2 */}
           <div className="p-8 bg-gradient-to-br from-[#0a0a0f]/90 to-[#1a1a2e]/90 backdrop-blur-xl border border-[#ff006e]/20 rounded-xl">
             <div className="w-12 h-12 bg-[#ff006e]/20 rounded-lg flex items-center justify-center mb-4">
-              <span className="text-2xl">💎</span>
+              <Gem size={24} className="text-[#ff006e]" />
             </div>
             <h3
               className="text-xl font-bold text-white mb-3"
@@ -124,7 +125,7 @@ export default function Home() {
           {/* Feature 3 */}
           <div className="p-8 bg-gradient-to-br from-[#0a0a0f]/90 to-[#1a1a2e]/90 backdrop-blur-xl border border-[#8338ec]/20 rounded-xl">
             <div className="w-12 h-12 bg-[#8338ec]/20 rounded-lg flex items-center justify-center mb-4">
-              <span className="text-2xl">⚡</span>
+              <Zap size={24} className="text-[#8338ec]" />
             </div>
             <h3
               className="text-xl font-bold text-white mb-3"

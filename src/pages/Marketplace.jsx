@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { Web3Context } from "../context/Web3Context";
 import NFTCard from "../components/NFTCard";
+import { Palette } from "lucide-react";
 
 export default function Marketplace() {
   const { account, contract } = useContext(Web3Context);
@@ -110,7 +111,7 @@ export default function Marketplace() {
         {/* Empty State */}
         {!isLoading && !error && nfts.length === 0 && (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">🎨</div>
+            <Palette size={64} className="mx-auto mb-4 text-gray-400" />
             <h3
               className="text-2xl font-bold text-white mb-2"
               style={{ fontFamily: "Orbitron, sans-serif" }}

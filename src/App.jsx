@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import MintNFT from "./pages/MintNFT";
 import Marketplace from "./pages/Marketplace";
 import NFTDetail from "./pages/NFTDetail";
+import TransactionHistory from "./pages/TransactionHistory";
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
             <Route path="/mint" element={<MintNFT />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/nft/:tokenId" element={<NFTDetail />} />
+            <Route path="/history" element={<TransactionHistory />} />
           </Routes>
         </div>
       </div>
