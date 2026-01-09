@@ -35,11 +35,11 @@ export function Web3Provider({ children }) {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const network = await provider.getNetwork();
       
-      // Check if on Hardhat network (Chain ID: 31337)
-      if (network.chainId !== 31337n) {
+      // Check if on Hardhat/Ganache network (Chain ID: 1337)
+      if (network.chainId !== 1337n) {
         const networkName = network.name === "unknown" ? `Chain ID ${network.chainId}` : network.name;
-        console.warn(`⚠️ Connected to ${networkName}, but contract is on Hardhat (Chain ID: 31337)`);
-        setError(`Wrong network! Please switch to Hardhat Local (Chain ID: 31337) in MetaMask.`);
+        console.warn(`⚠️ Connected to ${networkName}, but contract is on Local Network (Chain ID: 1337)`);
+        setError(`Wrong network! Please switch to Local Network (Chain ID: 1337) in MetaMask.`);
         setIsConnecting(false);
         return;
       }

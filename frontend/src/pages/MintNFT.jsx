@@ -1,14 +1,30 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { Web3Context } from "../context/Web3Context";
 import { parseEth } from "../utils/formatEth";
 
 export default function MintNFT() {
   const { account, contract } = useContext(Web3Context);
-  const [tokenId, setTokenId] = useState("");
   const [price, setPrice] = useState("");
+  const [nextTokenId, setNextTokenId] = useState(null);
   const [isMinting, setIsMinting] = useState(false);
   const [txHash, setTxHash] = useState("");
   const [error, setError] = useState("");
+
+  // Fetch the next token ID that will be minted
+  useEffect(() => {
+    async function fetchNextTokenId() {
+      if (!contract) return;
+      
+      try {
+        const tokenCounter = await contract.tokenCounter();
+        setNextTokenId(tokenCounter.toString());
+      } catch (err) {
+        console.error("Error fetching token counter:", err);
+      }
+    }
+
+    fetchNextTokenId();
+  }, [contract]);
 
   async function handleMint(e) {
     e.preventDefault();
@@ -23,8 +39,8 @@ export default function MintNFT() {
       return;
     }
 
-    if (!tokenId || !price) {
-      setError("Please fill in all fields");
+    if (!price) {
+      setError("Please enter a price");
       return;
     }
 
@@ -33,13 +49,17 @@ export default function MintNFT() {
     setTxHash("");
 
     try {
+      // Get the token ID that will be minted (before minting)
+      const tokenCounter = await contract.tokenCounter();
+      const mintedTokenId = tokenCounter.toString();
+
       // Convert price to Wei
       const priceInWei = parseEth(price);
 
-      console.log("Minting NFT...", { tokenId, price, priceInWei: priceInWei.toString() });
+      console.log("Minting NFT...", { price, priceInWei: priceInWei.toString(), nextTokenId: mintedTokenId });
 
-      // Call contract's mintNFT function
-      const tx = await contract.mintNFT(tokenId, priceInWei);
+      // Call contract's mintNFT function (only takes initialPrice)
+      const tx = await contract.mintNFT(priceInWei);
 
       console.log("Transaction sent:", tx.hash);
       setTxHash(tx.hash);
@@ -50,11 +70,14 @@ export default function MintNFT() {
       console.log("✅ NFT Minted successfully!");
 
       // Reset form
-      setTokenId("");
       setPrice("");
       
+      // Update next token ID
+      const newTokenCounter = await contract.tokenCounter();
+      setNextTokenId(newTokenCounter.toString());
+      
       // Show success message
-      alert(`NFT #${tokenId} minted successfully! Transaction: ${tx.hash}`);
+      alert(`NFT #${mintedTokenId} minted successfully! Transaction: ${tx.hash}`);
     } catch (err) {
       console.error("Minting error:", err);
       setError(err.message || "Failed to mint NFT");
@@ -90,22 +113,14 @@ export default function MintNFT() {
           {/* Form Card */}
           <div className="relative bg-gradient-to-br from-[#0a0a0f]/90 to-[#1a1a2e]/90 backdrop-blur-xl border border-[#00fff9]/20 rounded-2xl p-8">
             <form onSubmit={handleMint} className="space-y-6">
-              {/* Token ID Input */}
-              <div>
-                <label className="block text-sm text-gray-400 uppercase tracking-wider mb-2">
-                  Token ID
-                </label>
-                <input
-                  type="number"
-                  value={tokenId}
-                  onChange={(e) => setTokenId(e.target.value)}
-                  placeholder="e.g., 1"
-                  className="w-full px-4 py-3 bg-[#0a0a0f]/50 border border-[#00fff9]/20 rounded-lg text-white placeholder-gray-600 focus:border-[#00fff9] focus:outline-none transition-colors"
-                  style={{ fontFamily: "Orbitron, sans-serif" }}
-                  disabled={isMinting}
-                  required
-                />
-              </div>
+              {/* Next Token ID Display */}
+              {nextTokenId !== null && (
+                <div className="p-4 bg-[#00fff9]/10 border border-[#00fff9]/30 rounded-lg">
+                  <p className="text-xs text-gray-400 mb-1">Next Token ID:</p>
+                  <p className="text-lg text-[#00fff9] font-mono font-bold">{nextTokenId}</p>
+                  <p className="text-xs text-gray-500 mt-1">This will be automatically assigned</p>
+                </div>
+              )}
 
               {/* Initial Price Input */}
               <div>
@@ -170,7 +185,7 @@ export default function MintNFT() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li className="flex items-start gap-2">
                   <span className="text-[#00fff9] mt-0.5">●</span>
-                  <span>Choose a unique Token ID (must not already exist)</span>
+                  <span>Token ID is automatically assigned (starts from 0)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#ff006e] mt-0.5">●</span>
