@@ -48,6 +48,18 @@ export default function Navbar() {
             >
               History
             </Link>
+            <Link
+              to="/buy"
+              className="text-gray-400 hover:text-[#ff006e] transition-colors text-sm uppercase tracking-wider"
+            >
+              Buy
+            </Link>
+            <Link
+              to="/my-nfts"
+              className="text-gray-400 hover:text-[#ff006e] transition-colors text-sm uppercase tracking-wider"
+            >
+              My NFTs
+            </Link>
           </div>
 
           {/* Wallet Status */}

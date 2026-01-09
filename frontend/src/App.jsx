@@ -5,6 +5,9 @@ import MintNFT from "./pages/MintNFT";
 import Marketplace from "./pages/Marketplace";
 import NFTDetail from "./pages/NFTDetail";
 import TransactionHistory from "./pages/TransactionHistory";
+import BuyNFT from "./pages/BuyNFT";
+import MyNFTs from "./pages/MyNFTs";
+
 
 function App() {
   return (
@@ -44,6 +47,10 @@ function App() {
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/nft/:tokenId" element={<NFTDetail />} />
             <Route path="/history" element={<TransactionHistory />} />
+            <Route path="/buy" element={<BuyNFT />} />
+            <Route path="/my-nfts" element={<MyNFTs />} />
+
+
           </Routes>
         </div>
       </div>

@@ -1,183 +1,76 @@
-import { useState, useEffect, useContext } from "react";
+import { useContext, useState } from "react";
 import { Web3Context } from "../context/Web3Context";
-import { formatEth, shortenAddress, formatDate } from "../utils/formatEth";
-import { Sparkles, ShoppingCart, Coins, Crown, FileText, Lock, Scroll, Info, Copy, CheckCircle } from "lucide-react";
 
-export default function TransactionHistory() {
-  const { account, contract, provider } = useContext(Web3Context);
-  const [transactions, setTransactions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, mint, buy, royalty
+export default function History() {
+  const { contract, account } = useContext(Web3Context);
+  const [tokenId, setTokenId] = useState("");
+  const [history, setHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (account && contract) {
-      loadTransactions();
+  const fetchHistory = async () => {
+    if (!contract) {
+      setError("Contract not initialized");
+      return;
     }
-  }, [account, contract, filter]);
 
-  async function loadTransactions() {
-    if (!contract || !account) {
-      setIsLoading(false);
+    if (!tokenId) {
+      setError("Please enter a token ID");
       return;
     }
 
     setIsLoading(true);
+    setError("");
+    setHistory([]);
 
     try {
-      const txList = [];
+      const historyArray = [];
+      let index = 0;
+      let hasMore = true;
 
-      // Get all events related to this account
-      // Filter for NFTMinted events where user is the minter
-      const mintFilter = contract.filters.NFTMinted(null, account);
-      const mintEvents = await contract.queryFilter(mintFilter);
-
-      for (const event of mintEvents) {
-        const block = await provider.getBlock(event.blockNumber);
-        txList.push({
-          type: "mint",
-          tokenId: event.args.tokenId.toString(),
-          from: null,
-          to: account,
-          price: event.args.price,
-          timestamp: block.timestamp,
-          txHash: event.transactionHash,
-          blockNumber: event.blockNumber,
-        });
+      // Fetch ownership history entries one by one
+      // We'll keep fetching until we get an error (which means we've reached the end)
+      while (hasMore) {
+        try {
+          const entry = await contract.ownershipHistory(tokenId, index);
+          historyArray.push({
+            owner: entry.owner,
+            level: entry.level.toString(),
+            index: index,
+          });
+          index++;
+        } catch (err) {
+          // If we get an error, we've likely reached the end of the array
+          // Check if it's a "revert" error (which means index out of bounds)
+          if (err.message && err.message.includes("revert")) {
+            hasMore = false;
+          } else if (index === 0) {
+            // If we get an error on the first fetch, the token might not exist
+            throw new Error("Token ID not found or has no ownership history");
+          } else {
+            hasMore = false;
+          }
+        }
       }
 
-      // Filter for NFTBought events where user is buyer or seller
-      const buyFilterAsBuyer = contract.filters.NFTBought(null, null, account);
-      const buyEventsAsBuyer = await contract.queryFilter(buyFilterAsBuyer);
-
-      const buyFilterAsSeller = contract.filters.NFTBought(null, account);
-      const buyEventsAsSeller = await contract.queryFilter(buyFilterAsSeller);
-
-      const allBuyEvents = [...buyEventsAsBuyer, ...buyEventsAsSeller];
-      const uniqueBuyEvents = Array.from(
-        new Map(allBuyEvents.map((e) => [e.transactionHash, e])).values()
-      );
-
-      for (const event of uniqueBuyEvents) {
-        const block = await provider.getBlock(event.blockNumber);
-        const isBuyer = event.args.buyer.toLowerCase() === account.toLowerCase();
-
-        txList.push({
-          type: isBuyer ? "buy" : "sell",
-          tokenId: event.args.tokenId.toString(),
-          from: event.args.seller,
-          to: event.args.buyer,
-          price: event.args.price,
-          timestamp: block.timestamp,
-          txHash: event.transactionHash,
-          blockNumber: event.blockNumber,
-        });
+      if (historyArray.length === 0) {
+        setError("No ownership history found for this token ID");
+      } else {
+        setHistory(historyArray);
       }
-
-      // Filter for RoyaltyPaid events where user received royalty
-      const royaltyFilter = contract.filters.RoyaltyPaid(null, account);
-      const royaltyEvents = await contract.queryFilter(royaltyFilter);
-
-      for (const event of royaltyEvents) {
-        const block = await provider.getBlock(event.blockNumber);
-        txList.push({
-          type: "royalty",
-          tokenId: event.args.tokenId.toString(),
-          from: null,
-          to: account,
-          price: event.args.amount,
-          timestamp: block.timestamp,
-          txHash: event.transactionHash,
-          blockNumber: event.blockNumber,
-        });
-      }
-
-      // Sort by timestamp (newest first)
-      txList.sort((a, b) => b.timestamp - a.timestamp);
-
-      // Apply filter
-      let filtered = txList;
-      if (filter !== "all") {
-        filtered = txList.filter((tx) => {
-          if (filter === "buy") return tx.type === "buy" || tx.type === "sell";
-          return tx.type === filter;
-        });
-      }
-
-      setTransactions(filtered);
     } catch (err) {
-      console.error("Error loading transactions:", err);
+      console.error("Error fetching history:", err);
+      setError(err.message || "Failed to fetch ownership history");
     } finally {
       setIsLoading(false);
     }
-  }
-
-  function getTransactionIcon(type) {
-    const iconProps = { size: 32, strokeWidth: 2 };
-    switch (type) {
-      case "mint":
-        return <Sparkles {...iconProps} className="text-[#8338ec]" />;
-      case "buy":
-        return <ShoppingCart {...iconProps} className="text-[#ff006e]" />;
-      case "sell":
-        return <Coins {...iconProps} className="text-[#00fff9]" />;
-      case "royalty":
-        return <Crown {...iconProps} className="text-yellow-400" />;
-      default:
-        return <FileText {...iconProps} className="text-gray-400" />;
-    }
-  }
-
-  function getTransactionColor(type) {
-    switch (type) {
-      case "mint":
-        return "text-[#8338ec]";
-      case "buy":
-        return "text-[#ff006e]";
-      case "sell":
-        return "text-[#00fff9]";
-      case "royalty":
-        return "text-yellow-400";
-      default:
-        return "text-gray-400";
-    }
-  }
-
-  function getTransactionTitle(tx) {
-    switch (tx.type) {
-      case "mint":
-        return `Minted NFT #${tx.tokenId}`;
-      case "buy":
-        return `Bought NFT #${tx.tokenId}`;
-      case "sell":
-        return `Sold NFT #${tx.tokenId}`;
-      case "royalty":
-        return `Royalty from NFT #${tx.tokenId}`;
-      default:
-        return "Transaction";
-    }
-  }
-
-  if (!account) {
-    return (
-      <div className="min-h-screen pt-32 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12">
-            <Lock size={64} className="mx-auto mb-4 text-gray-400" />
-            <h2 className="text-2xl font-bold mb-4">Wallet Not Connected</h2>
-            <p className="text-gray-400">
-              Please connect your wallet to view transaction history.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="min-h-screen pt-24 px-4 pb-12">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen pt-24 pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="text-center mb-12">
           <h1
             className="text-5xl md:text-6xl font-black mb-4"
             style={{
@@ -187,168 +80,98 @@ export default function TransactionHistory() {
               WebkitTextFillColor: "transparent",
             }}
           >
-            Transaction History
+            Ownership History
           </h1>
-          <p className="text-gray-400 text-lg">
-            Immutable on-chain record of your NFT activity
-          </p>
+          <p className="text-gray-400">View the complete ownership history of any NFT</p>
         </div>
 
-        {/* Filters */}
-        <div className="mb-8 flex flex-wrap gap-3">
-          {["all", "mint", "buy", "royalty"].map((filterType) => (
-            <button
-              key={filterType}
-              onClick={() => setFilter(filterType)}
-              className={`px-6 py-2 rounded-full font-semibold transition-all ${
-                filter === filterType
-                  ? "bg-gradient-to-r from-[#00fff9] to-[#ff006e] text-black"
-                  : "bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10"
-              }`}
-            >
-              {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
-            </button>
-          ))}
+        {/* Search Form */}
+        <div className="relative group mb-8">
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#00fff9] via-[#ff006e] to-[#8338ec] rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+          
+          <div className="relative bg-gradient-to-br from-[#0a0a0f]/90 to-[#1a1a2e]/90 backdrop-blur-xl border border-[#00fff9]/20 rounded-2xl p-8">
+            <div className="flex gap-4">
+              <input
+                type="number"
+                placeholder="Enter Token ID"
+                value={tokenId}
+                onChange={(e) => setTokenId(e.target.value)}
+                className="flex-1 px-4 py-3 bg-[#0a0a0f]/50 border border-[#00fff9]/20 rounded-lg text-white placeholder-gray-600 focus:border-[#00fff9] focus:outline-none transition-colors"
+                style={{ fontFamily: "Orbitron, sans-serif" }}
+                disabled={isLoading}
+              />
+              <button
+                onClick={fetchHistory}
+                disabled={isLoading || !account || !tokenId}
+                className="px-8 py-3 bg-gradient-to-r from-[#00fff9] to-[#ff006e] text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 transition-opacity"
+                style={{ fontFamily: "Orbitron, sans-serif" }}
+              >
+                {isLoading ? "Loading..." : "Fetch History"}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-20">
-            <div className="inline-block w-16 h-16 border-4 border-[#00fff9] border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-400">Loading transactions...</p>
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg mb-6">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        {/* History List */}
+        {history.length > 0 && (
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-[#00fff9] via-[#ff006e] to-[#8338ec] rounded-2xl blur-xl opacity-20"></div>
+            
+            <div className="relative bg-gradient-to-br from-[#0a0a0f]/90 to-[#1a1a2e]/90 backdrop-blur-xl border border-[#00fff9]/20 rounded-2xl p-8">
+              <h2 className="text-2xl font-bold text-white mb-6" style={{ fontFamily: "Orbitron, sans-serif" }}>
+                Token #{tokenId} Ownership History
+              </h2>
+              
+              <div className="space-y-4">
+                {history.map((h, i) => (
+                  <div
+                    key={i}
+                    className="p-4 bg-[#0a0a0f]/50 border border-[#00fff9]/20 rounded-lg hover:border-[#00fff9]/40 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#00fff9] to-[#ff006e] flex items-center justify-center text-white font-bold">
+                          {h.level}
+                        </div>
+                        <div>
+                          <p className="text-white font-mono text-sm">{h.owner}</p>
+                          <p className="text-gray-400 text-xs">Level {h.level} Owner</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-gray-400 text-xs">Entry #{h.index}</p>
+                        {i === 0 && (
+                          <span className="text-xs text-[#00fff9]">Original Owner</span>
+                        )}
+                        {i === history.length - 1 && i > 0 && (
+                          <span className="text-xs text-[#ff006e]">Current Owner</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6 pt-6 border-t border-[#00fff9]/10">
+                <p className="text-sm text-gray-400">
+                  Total ownership transfers: <span className="text-[#00fff9] font-bold">{history.length}</span>
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Empty State */}
-        {!isLoading && transactions.length === 0 && (
-          <div className="text-center py-20">
-            <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12">
-              <Scroll size={64} className="mx-auto mb-4 text-gray-400" />
-              <h3 className="text-2xl font-bold mb-2">No Transactions Yet</h3>
-              <p className="text-gray-400">
-                {filter === "all"
-                  ? "Start by minting or buying an NFT to see your transaction history."
-                  : `No ${filter} transactions found.`}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Transaction List */}
-        {!isLoading && transactions.length > 0 && (
-          <div className="space-y-4">
-            {transactions.map((tx, index) => (
-              <div
-                key={`${tx.txHash}-${index}`}
-                className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:border-[#00fff9]/30 transition-all group"
-              >
-                <div className="flex items-start justify-between gap-6">
-                  {/* Icon & Type */}
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="flex-shrink-0 mt-1">{getTransactionIcon(tx.type)}</div>
-                    <div className="flex-1">
-                      <h3
-                        className={`text-xl font-bold mb-2 ${getTransactionColor(
-                          tx.type
-                        )}`}
-                      >
-                        {getTransactionTitle(tx)}
-                      </h3>
-
-                      {/* Details Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                        {/* Price */}
-                        <div>
-                          <span className="text-gray-500">Amount:</span>
-                          <span className="ml-2 text-white font-semibold">
-                            {formatEth(tx.price)} ETH
-                          </span>
-                        </div>
-
-                        {/* From/To */}
-                        {tx.from && (
-                          <div>
-                            <span className="text-gray-500">From:</span>
-                            <span className="ml-2 text-white font-mono">
-                              {shortenAddress(tx.from)}
-                            </span>
-                          </div>
-                        )}
-                        {tx.to && tx.type !== "royalty" && (
-                          <div>
-                            <span className="text-gray-500">To:</span>
-                            <span className="ml-2 text-white font-mono">
-                              {shortenAddress(tx.to)}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Timestamp */}
-                        <div>
-                          <span className="text-gray-500">Date:</span>
-                          <span className="ml-2 text-white">
-                            {formatDate(tx.timestamp)}
-                          </span>
-                        </div>
-
-                        {/* Block Number */}
-                        <div>
-                          <span className="text-gray-500">Block:</span>
-                          <span className="ml-2 text-white font-mono">
-                            #{tx.blockNumber}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Transaction Hash */}
-                      <div className="mt-3 pt-3 border-t border-white/10">
-                        <span className="text-gray-500 text-sm">Tx Hash:</span>
-                        <div className="flex items-center gap-2 mt-1">
-                          <code className="text-xs text-[#00fff9] font-mono bg-black/30 px-3 py-1 rounded">
-                            {tx.txHash}
-                          </code>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(tx.txHash);
-                              alert("Transaction hash copied!");
-                            }}
-                            className="text-gray-400 hover:text-[#00fff9] transition-colors"
-                            title="Copy transaction hash"
-                          >
-                            <Copy size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="flex-shrink-0">
-                    <div className="bg-green-500/20 text-green-400 px-4 py-1 rounded-full text-sm font-semibold border border-green-500/30 flex items-center gap-2">
-                      <CheckCircle size={16} />
-                      <span>Confirmed</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Info Footer */}
-        {!isLoading && transactions.length > 0 && (
-          <div className="mt-8 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-            <div className="flex items-start gap-3">
-              <Info size={24} className="text-[#00fff9] flex-shrink-0" />
-              <div>
-                <h4 className="font-bold mb-1">Blockchain Transparency</h4>
-                <p className="text-sm text-gray-400">
-                  All transactions are recorded on the Ethereum blockchain and are
-                  immutable. Transaction hashes can be verified on any block
-                  explorer.
-                </p>
-              </div>
-            </div>
+        {!isLoading && history.length === 0 && !error && tokenId && (
+          <div className="text-center py-12">
+            <p className="text-gray-400">Enter a token ID and click "Fetch History" to view ownership history</p>
           </div>
         )}
       </div>
